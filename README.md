@@ -2,15 +2,15 @@
  Algorthimic Trading Strategies
 
 
-File Structure:
+\nFile Structure:
 
-/ Algo Trading
- // algos
-   *.py
- // utils
-   *.py
- main.py
- preprocessing.py
- indicators.py
- data_fetch.py
- notebook.ipynb
+\n/ Algo Trading
+\n\t// algos
+\n\t\t*.py
+\n\t// utils
+\n\t*.py
+\n\tmain.py
+\n\tpreprocessing.py
+\n\tindicators.py
+\n\tdata_fetch.py
+\n\tnotebook.ipynb
