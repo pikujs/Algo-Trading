@@ -3,11 +3,11 @@ import os
 import sys
 import json
 from argparse import ArgumentParser
-from utils.stock_file import get_stocks_from_file
-from utils.nasdaq import get_nasdaq_traded_stocks, get_nasdaq_listed_stocks
-from utils.fmp import FmpCompany
-from utils.yahoo import YahooCompany
-from algos.graham import graham_filter
+from stock_file import get_stocks_from_file
+from nasdaq import get_nasdaq_traded_stocks, get_nasdaq_listed_stocks
+from fmp import FmpCompany
+from yahoo import YahooCompany
+from graham import graham_filter
 
 ## Constants
 
