@@ -2,12 +2,13 @@
 import os
 import sys
 import json
+import requests
 from argparse import ArgumentParser
-from stock_file import get_stocks_from_file
-from nasdaq import get_nasdaq_traded_stocks, get_nasdaq_listed_stocks
-from fmp import FmpCompany
-from yahoo import YahooCompany
-from graham import graham_filter
+from .stock_file import get_stocks_from_file
+from .nasdaq import get_nasdaq_traded_stocks, get_nasdaq_listed_stocks
+from .fmp import FmpCompany
+from .yahoo import YahooCompany
+from .graham import graham_filter
 
 ## Constants
 
@@ -16,7 +17,17 @@ DATA_FOLDER = "../data/"
 
 ## Data Fetch
 
-## (1) Stocklist
+## finnhub
+fin_token = "bsomk7frh5r8ktik10l0"
+symb = "AAPL"
+start_datetime = "1572651390"
+end_datetime = "1572910590"
+
+def finnhub_hist(sym=symb, start_datetime=start_datetime, end_datetime=end_datetime):
+    r = requests.get("".join(["https://finnhub.io/api/v1/stock/candle?symbol=", sym, "&resolution=1&from=", start_datetime , "&to=", end_datetime , "&token=", fin_token]))
+    return r.json()
+
+## Stocklist
 
 def fetch_symbol_data(symbol):
     """
