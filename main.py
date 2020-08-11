@@ -7,6 +7,9 @@ from utils import data_fetch
 data = data_fetch.finnhub_hist("AAPL")
 print(data)
 
+
+print("Done")
+
 ## Models
 
 
