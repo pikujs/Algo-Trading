@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 import matplotlib.pyplot as plt
+import indicators
 
 full_file_path = "data/SPY.csv"
 data = OrderedDict()
@@ -39,6 +40,7 @@ def handle_data(context, data):
     short_mavg = data.history(context.asset, 'price', bar_count=50, frequency="1d").mean()
     long_mavg = data.history(context.asset, 'price', bar_count=200, frequency="1d").mean()
 
+    bolinger_data = indicators.bolinger_scratch(data, 20)
     # Trading logic
     open_orders = get_open_orders()
     
@@ -62,7 +64,8 @@ perf = zipline.run_algorithm(start=start,
                       end=end,
                       initialize=initialize,
                       capital_base=10000,
-                      handle_data=handle_data)
+                      handle_data=handle_data,
+                      data=panel)
 
 print("\nAlgorithm has run")
 
