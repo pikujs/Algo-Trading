@@ -1,13 +1,11 @@
 import pandas as pd
 import requests
-import urllib.parse as par
 from datetime import datetime
 import time
 import os
 import csv
-import zipfile
 
-DB_URL = "http://ec2-15-207-107-183.ap-south-1.compute.amazonaws.com:9000/"
+DB_URL = "db.pikujs.com:9000/"
 
 bnifty_table = "BANKNIFTY_F1"
 instrumentNames = [bnifty_table, "BANKNIFTY", "NIFTY_F1", "NIFTY"]
@@ -187,24 +185,28 @@ def getDatafromFolder(dir_path, name, verbose=False): ## Get DataFrame from fold
                 master_data = master_data.append(data, ignore_index=True)
     return master_data
 
+def get_data(name, year, verbose=False):
+    file_path_list = getIntradayFilePathList(name, year, verbose=verbose)
+    return getDatafromFileList(file_path_list, verbose=verbose)
 
 def create_full_table(name, year, verbose=False): ## Create full table and insert values from imported csv data
     if verbose:
         print("Creating Full Table " + name)
     recreate_table(name, verbose=verbose)
-    file_path_list = getIntradayFilePathList(name, year, verbose=verbose)
-    data = getDatafromFileList(file_path_list, verbose=verbose)
-    sc, fc = insertMax_table(data, bnifty_table, verbose=verbose)
+    data = get_data(name, year, verbose=verbose)
+    sc, fc = insertAll_table(data, bnifty_table, verbose=verbose)
     if verbose:
         print("\nSuccess count = " + str(sc) + "\nFail Count = " + str(fc))
 
-#for iName in instrumentNames[0:1]:
+"""
+for iName in instrumentNames:
+    create_full_table(iName, "2020", True)
 #file_path_list = getIntradayFilePathList(bnifty_table, "2020", True)
 #data = getDatafromFileList(file_path_list, True)
-create_full_table(bnifty_table, "2020", True)
     #store_db_format(data, DATA_FOLDER + "2020/" + iName + "_small.csv")
 
 #data = getDatafromFolder(DATA_FOLDER + "2020/", bnifty_table)
 #data.to_csv(DATA_FOLDER + "2020/BNIFTY_F1_2020.csv", index=False)
 #maxinsert = insertMax_table(data, bnifty_table, verbose=True)
 
+"""
