@@ -237,9 +237,14 @@ def prepare_futures_Data(data, verbose=False):
     if verbose:
         print(pData[:3])
     return pData
+"""
+rawdata = get_data(bnifty_table, "2020", False)
+prepdata = prepare_futures_Data(rawdata, True)
+pd.DataFrame.from_records(prepdata).to_csv("data/oneminutedata/2020/" + bnifty_table + ".csv", index=False)
 
 
 for iName in [futuresNames[1], futuresNames[3]]:
     create_new_table(iName, schema, verbose=True)
     rawdata = get_data(iName, "2020", False)
     insert_batch(iName, prepare_futures_Data(rawdata), True)
+"""

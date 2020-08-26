@@ -8,9 +8,11 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 import matplotlib.pyplot as plt
-import indicators
+#import indicators
+from db import timscale_setup
 
-full_file_path = "data/SPY.csv"
+
+full_file_path = "SPY.csv"
 data = OrderedDict()
 data['SPY'] = pd.read_csv(full_file_path, index_col=0, parse_dates=['date'])
 data['SPY'] = data['SPY'][["open","high","low","close","volume"]]
@@ -22,7 +24,10 @@ panel.minor_axis = ["open","high","low","close","volume"]
 panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
 print(panel)
 
-
+print("Fetching Data")
+data = timscale_setup.get_full_table("BANKNIFTY_F1")
+data.describe()
+data.head()
 
 def initialize(context):
     context.i = 0
@@ -40,7 +45,7 @@ def handle_data(context, data):
     short_mavg = data.history(context.asset, 'price', bar_count=50, frequency="1d").mean()
     long_mavg = data.history(context.asset, 'price', bar_count=200, frequency="1d").mean()
 
-    bolinger_data = indicators.bolinger_scratch(data, 20)
+    #bolinger_data = indicators.bolinger_scratch(data, 20)
     # Trading logic
     open_orders = get_open_orders()
     
@@ -78,7 +83,7 @@ benchmark_period_return = perf['benchmark_period_return']
 daily_benchmark_returns = np.exp(np.log(benchmark_period_return + 1.0).diff()) - 1
 
 # Create tear sheet
-pf.create_full_tear_sheet(returns, positions=positions, transactions=transactions, benchmark_rets=daily_benchmark_returns)
+#pf.create_full_tear_sheet(returns, positions=positions, transactions=transactions, benchmark_rets=daily_benchmark_returns)
 
 ## Daily returns from cummulative returns
 
