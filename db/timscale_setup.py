@@ -29,6 +29,10 @@ hostname = "db.pikujs.com"
 port = 5432
 database_name = "ohlcvdata"
 
+def get_config():
+    return hostname, database_name, username, password
+
+
 DATA_FOLDER = "data/oneminutedata/"
 month_map = {"JAN": 1, 
     "FEB": 2, 
@@ -237,6 +241,42 @@ def prepare_futures_Data(data, verbose=False):
     if verbose:
         print(pData[:3])
     return pData
+
+def prepare_options_data(data, verbose=False):
+    pData = []
+    if data["instrument-name"][1][-2] != 'F':
+        print("Warning: Data might not be futures data.")
+    suffix_count = int(data["instrument-name"][1][-1])
+    if verbose:
+        print("Processing Futures Data for " + data["instrument-name"][1])
+    for index, d in data.iterrows():
+        exp_month = int(d["date"]/100)%100
+        exp_year = int(d["date"]/10000)
+        exp_date = last_thursday(exp_month, exp_year)
+        month_offset = 1 if (d["date"]%100) <= exp_date else 0
+        exp_month = exp_month + suffix_count - month_offset
+        if exp_month > 12:
+            exp_month = exp_month - 12
+            exp_year = exp_year + 1
+        exp_date = last_thursday(exp_month, exp_year)
+        exp_datetime = " ".join(["-".join([str(exp_year), str(exp_month), str(exp_date)]), "23:59"])
+        parsed_datetime = " ".join(["-".join([str(d["date"])[:4], str(d["date"])[4:6], str(d["date"])[6:8]]), str(d["time"])])
+        intName = " ".join([d["instrument-name"][:-3], counter_map(exp_month), "FUT"])
+        pData.append({
+            'datetime': parsed_datetime, 
+            'internalName': intName,
+            'open': d["open"], 
+            'high': d["high"], 
+            'low': d["low"], 
+            'close': d["close"], 
+            'volume': d["volume"], 
+            'unknown': d["unknown"],
+            'expiryDate': exp_datetime,
+            'exchange': "NSE"})
+    if verbose:
+        print(pData[:3])
+    return pData
+
 """
 rawdata = get_data(bnifty_table, "2020", False)
 prepdata = prepare_futures_Data(rawdata, True)
@@ -248,3 +288,4 @@ for iName in [futuresNames[1], futuresNames[3]]:
     rawdata = get_data(iName, "2020", False)
     insert_batch(iName, prepare_futures_Data(rawdata), True)
 """
+
