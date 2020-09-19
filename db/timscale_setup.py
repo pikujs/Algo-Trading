@@ -135,7 +135,6 @@ def query(query_str, data, verbose=False):
     if cur.description:
         return cur.fetchall()
 
-
 def create_new_table(name, schema, verbose=False):
     q = "DROP TABLE IF EXISTS " + name + "; CREATE TABLE " + name + "( "
     sch = ", ".join([" ".join([col, dtype]) for (col, dtype) in schema])
@@ -189,7 +188,6 @@ def insert_batch(table_name, data, verbose=False):
         print(cur.statusmessage)
     conn.commit()
     cur.close()
-
 
 def fast_insert(table_name, data, schema, verbose=False):
     conn = psycopg2.connect(host=hostname, port=port, user=username, password=password, database=database_name)
@@ -277,15 +275,18 @@ def prepare_options_data(data, verbose=False):
         print(pData[:3])
     return pData
 
-"""
-rawdata = get_data(bnifty_table, "2020", False)
-prepdata = prepare_futures_Data(rawdata, True)
-pd.DataFrame.from_records(prepdata).to_csv("data/oneminutedata/2020/" + bnifty_table + ".csv", index=False)
+def insert_all_futures():
+    rawdata = get_data(bnifty_table, "2020", False)
+    prepdata = prepare_futures_Data(rawdata, True)
+    pd.DataFrame.from_records(prepdata).to_csv("data/oneminutedata/2020/" + bnifty_table + ".csv", index=False)
 
+    for iName in [futuresNames[1], futuresNames[3]]:
+        create_new_table(iName, schema, verbose=True)
+        rawdata = get_data(iName, "2020", False)
+        insert_batch(iName, prepare_futures_Data(rawdata), True)
 
-for iName in [futuresNames[1], futuresNames[3]]:
-    create_new_table(iName, schema, verbose=True)
-    rawdata = get_data(iName, "2020", False)
-    insert_batch(iName, prepare_futures_Data(rawdata), True)
-"""
+def insert_all_options():
+    pass
 
+if __name__ == "__main__":
+    pass
