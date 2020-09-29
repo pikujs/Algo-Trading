@@ -21,7 +21,6 @@ def connect(params_dic):
 
 
 def postgresql_to_dataframe(conn, select_query, column_names):
-
     cursor = conn.cursor()
     try:
         cursor.execute(select_query)
@@ -54,6 +53,31 @@ def gettablerange(host,database,username,password,tablename,startdt,enddt):
     df = postgresql_to_dataframe(conn, "SELECT * FROM public."+tablename+" WHERE datetime between "+startdt+" AND "+enddt, column_names)
     return df
 
+
+
+def getmonthrange(host,database,username,password,tablename,startmonth,endmonth,startyear,endyear):
+    
+    param_dic = {
+        "host"      : host,
+        "database"  : database,
+        "user"      : username,
+        "password"  : password
+    }
+    
+    endmonth = int(endmonth)
+    endmonth+=1
+    startdt = str('\''+str(startyear) +'-'+str(startmonth)+'-01'+'  09:14:00'+'\'')
+    enddt = str('\''+str(endyear) +'-'+str(endmonth)+'-01'+'  09:14:00'+'\'')
+    
+    conn = connect(param_dic)
+    
+    column_names = ["datetime","internaltime","open","high","low","close","volume","unknown","expirydate","exchange"]
+    df = postgresql_to_dataframe(conn, "SELECT * FROM public."+tablename+" WHERE datetime between "+startdt+" AND "+enddt, column_names)
+    return df
+
+    
+    
+
 def gettable(host,database,username,password,tablename):
     
     param_dic = {
@@ -78,26 +102,35 @@ def expirymonth(host,database,username,password,tablename,month,year):
         "password"  : password
     }
     
-    m_str = str(month)
-    next_m = str(month+1)
-    next_yr = str(year)
-    if month<9:
-        m_str = "0" + str(month)
-        next_m = "0" + str(month+1)
-    elif month == 9:
-        m_str = "09"
-        next_m = "10"
-    elif month == 12:
-        m_str = "12"
-        next_m = "01"
-        next_yr = str(year+1)
-    
-
-    startdt = '\''+str(str(year) +'-'+m_str+'-01'+'  09:14:00')+'\''
-    enddt = '\''+str(next_yr +'-'+next_m+'-01'+'  09:14:00')+'\''
-    # enddt = '\''+str(str(year) +'-'+m_str+'-31'+'  23:59:00')+'\''
+    month1 = int(month)
+    month1+=1
+        
+    startdt = '\''+str(year +'-'+month+'-01'+'  09:14:00')+'\''
+    enddt = '\''+str(year +'-'+str(month1)+'-01'+'  09:14:00')+'\''
     conn = connect(param_dic)
     
-    column_names = ["datetime","internalname","open","high","low","close","volume","unknown","expirydate","exchange"]
+    column_names = ["datetime","internaltime","open","high","low","close","volume","unknown","expirydate","exchange"]
     df = postgresql_to_dataframe(conn, "SELECT * FROM public."+tablename+" WHERE expirydate between "+startdt+" AND "+enddt, column_names)
+    return df
+
+
+def getmonth(host,database,username,password,tablename,month,year):
+    
+    param_dic = {
+        "host"      : host,
+        "database"  : database,
+        "user"      : username,
+        "password"  : password
+    }
+    
+    month1 = int(month)
+    month1+=1
+        
+    
+    startdt = '\''+str(year) +'-'+str(month)+'-01'+'  09:14:00'+'\''
+    enddt = '\''+str(year) +'-'+str(month1)+'-01'+'  09:14:00'+'\''
+    conn = connect(param_dic)
+    
+    column_names = ["datetime","internaltime","open","high","low","close","volume","unknown","expirydate","exchange"]
+    df = postgresql_to_dataframe(conn, "SELECT * FROM public."+tablename+" WHERE datetime between "+startdt+" AND "+enddt, column_names)
     return df

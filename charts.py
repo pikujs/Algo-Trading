@@ -3,12 +3,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mpticker
 import finplot as fplt
 import requests
 from io import StringIO
 from time import time
 import strategys_backtesting
 
+from mpl_finance import candlestick_ohlc
 #import quantmod
 
 ## Definitions
@@ -226,6 +229,35 @@ class FinPlotter:
         fplt.autoviewrestore()
 
         fplt.show()
+
+def mydate(x,pos):
+    try:
+        return datetime.datetime.fromtimestamp(x, tz=est).strftime(date_format)
+    except IndexError:
+        return ''
+        
+def plot_stock_data_centers(data, high_centers, low_centers):
+    fig, ax = plt.subplots()
+    ax1 = plt.subplot2grid((5,1), (0,0), rowspan=4)
+    ax2 = plt.subplot2grid((5,1), (4,0), sharex=ax1)
+
+    ax1.set_title("{} - {}".format("NAMKNIFTY_F1", "JAN"))
+    ax1.set_facecolor("#131722")
+    ax1.xaxis.set_major_formatter(mpticker.FuncFormatter(mydate))
+
+    candlestick_ohlc(ax1, data.to_numpy(), width=8, colorup='#77d879', colordown='#db3f3f')
+
+    ax2.bar(data['Time'], data['Volume'], width=30)
+    ax2.xaxis.set_major_formatter(mpticker.FuncFormatter(mydate))
+    fig.subplots_adjust(hspace=0)
+    fig.autofmt_xdate()
+    return ax1
+    for low in low_centers[:2]:
+        ax1.axhline(low[0], color='yellow', ls='--')
+    for high in high_centers[-1:]:
+        ax1.axhline(high[0], color='orange', ls='--')
+    plt.show()
+
 
 ## bad and slow
 def plotly_candlestick(data, instrumentName):

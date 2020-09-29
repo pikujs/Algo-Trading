@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from db import timscale_setup
 from db import dbscrape
 import strategys_backtesting
-from main import backtestModel
+# from main import backtestModel
 
 from backtesting import Backtest
 #from backtesting.test import SMA
@@ -24,9 +24,9 @@ from pyswarms.utils.plotters.formatters import Mesher
 ## Pyswarms
 
 class PyswarmOptimizer:
-    def __init__(self, model=None):
+    def __init__(self, model_func):
         if not model:
-            self.model = backtestModel()
+            self.model = model_func()
             self.model.setData(self.model.fetchData(), verbose=True)
             self.model.prepareBacktest(strategys_backtesting.SmaCross)
         self.options = {'c1': 0.5, 'c2': 0.3, 'w':0.9}
@@ -76,13 +76,13 @@ class PSO:
                 self.best_part_err = self.error
                 self.best_part_pos = pos
     
-    def __init__(self, dims, numOfBoids, numOfEpochs):
+    def __init__(self, model_func, dims, numOfBoids, numOfEpochs):
         self.swarm_list = [self.Particle(dims, 10, 50) for i in range(numOfBoids)]
         self.numOfEpochs = numOfEpochs
 
         self.best_swarm_position = np.random.uniform(low=10, high=50, size=dims)
         self.best_swarm_error = 1e80  # Set high value to best swarm error
-        self.model = backtestModel()
+        self.model = model_func()
         self.model.setData(self.model.fetchData(), verbose=True)
         self.model.prepareBacktest(strategys_backtesting.SmaCross)
 
