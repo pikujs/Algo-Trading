@@ -25,6 +25,7 @@ from db import dbscrape
 import strategys_backtesting
 # import strategy_optimizer
 import charts
+import mplfinance as mpf
 
 from backtesting import Backtest
 #from backtesting.test import SMA
@@ -41,18 +42,22 @@ class backtestModel:
     def __init__(self, tablename="BANKNIFTY_F1"):
         self.data = pd.DataFrame()
         self.table_name = tablename
-    def fetchData(self, month=1, year=2020, startdate="2020-02-02 09:30:00", enddate="2020-02-29 15:30:00"):
+    def fetchData(self, month=2, year=2020, day="all", heiken_ashi=False, startdate="2020-02-02 09:30:00", enddate="2020-02-29 15:30:00", verbose=False):
         #data = dbscrape.gettablerange(*(timscale_setup.get_config()), banknifty_table, startdate, enddate)
         rawdata = dbscrape.expirymonth(*(timscale_setup.get_config()), self.table_name, month, year)
-        return rawdata
-    def setData(self, rawdata, day="all", verbose=False):
+        if verbose:
+            print(rawdata.head())
+            print(rawdata.tail())
         self.instrument_name = rawdata['internalname'][0]
         self.expiry_date = rawdata["expirydate"][0]
-        self.data = strategys_backtesting.prepareData(rawdata, heiken_ashi=False, verbose=verbose)
+        processed_data = strategys_backtesting.prepareData(rawdata, heiken_ashi=heiken_ashi, verbose=verbose)
         if day is not "all":
-            self.data = self.data.index.apply(lambda x: x.strftime("%A") == day)
+            processed_data = processed_data.index.apply(lambda x: x.strftime("%A") == day)
         if verbose:
-            print(self.data.head())
+            print(processed_data.head())
+        return processed_data
+    def setData(self, processed_data, verbose=False):
+        self.data = processed_data
     def prepareBacktest(self, strategy, cash=100000, commission=0.002):
         self.bt = Backtest(self.data, strategy, cash=cash, commission=commission)
         print("backtest prepared")
@@ -79,7 +84,6 @@ class backtestModel:
         self.fplt.simplePlot(name=plotname)
         # self.fplt.indiPlot(name=plotname)
     def run(self, model_func=strategys_backtesting.SnRfollowup):
-        self.setData(self.fetchData(), verbose=True)
         self.prepareBacktest(model_func, cash=100000, commission=0.0)
         self.runBacktest()
 
@@ -121,12 +125,24 @@ def generatelevels(data, timeframe=750): ## run on 5 minute candles/ proximity >
 ## SnRfollowup_take1
 def main():
     model = backtestModel()
-    model.setData(model.fetchData(month=1, year=2020))
-    indicators.SRLevels(model.data[0:800])
-    lowC, highC = indicators.getCenters(model.data["Low"][0:750], model.data["High"][0:750])
-    charts.plot_stock_data_centers(model.data[0:750], highC, lowC)
-    # model.run(model_func=strategys_backtesting.SnRfollowup)
-    # model.plot(title="supres_test1")
+    onemin_data = model.fetchData(month=2, year=2020)
+    threemin_data = indicators.chart_resample(onemin_data, target_sr=3)
+    threemin_data = indicators.heiken_ashi(threemin_data)
+    model.setData(threemin_data)
+    # logging.info(str(threemin_data.head()))
+    print(threemin_data.head())
+    print(model.data.head())
+    # indicators.SRLevels(model.data[0:800])
+    # lowC, highC = indicators.getCenters(model.data["Low"][0:750], model.data["High"][0:750])
+    # charts.plot_stock_data_centers(model.data.iloc[0:750], highC, lowC)
+
+    # # Plot levels
+    # indexes, lvls = zip(*levels)
+    # mpf.plot(df, hlines=lvls, type="candle")
+
+    # RUN Model
+    model.run(model_func=strategys_backtesting.SnRfollowup)
+    model.plot(title="SRFollowup_hAshi_3min_feb_test8")
     # model.finchart()
     #pyswarmstrat = strategy_optimizer.PyswarmOptimizer(model_func=backtestModel)
     #pyswarmstrat.optimize()
@@ -134,6 +150,6 @@ def main():
     # pso.optimize()
 
 if __name__ == "__main__":
-
-    # setupLogging(fname="dl2timeframeStrat_take2")
+    setupLogging(fname="SRFollowup_hAshi_3min_feb_test8")
+    logging.info("changed breakout detection to Close price")
     main()
