@@ -2,6 +2,7 @@
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import datetime
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mpticker
@@ -11,7 +12,7 @@ from io import StringIO
 from time import time
 import strategys_backtesting
 
-from mpl_finance import candlestick_ohlc
+import mplfinance as mpf
 #import quantmod
 
 ## Definitions

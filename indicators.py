@@ -9,7 +9,12 @@ import matplotlib.ticker as mpticker
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import KMeans
 
-## Indicators
+from db import timscale_setup
+from db import dbscrape
+import strategys_backtesting
+# import strategy_optimizer
+import charts
+import mplfinance as mpf
 
 # Compute the Bollinger Bands 
 def bolinger_scratch(data, window=20, std_n=2, heiken_ashi=True):
@@ -23,6 +28,7 @@ def bolinger_scratch(data, window=20, std_n=2, heiken_ashi=True):
         new_data['LowerBB'] = MA - (std_n * SD)
     return new_data
 
+## Downsample Chart to Integer SR Ratio Timeframes
 def chart_resample(df, target_sr=5, current_sr=1):
     df_res = pd.DataFrame()
     datetimes = []
@@ -73,6 +79,7 @@ def chart_resample(df, target_sr=5, current_sr=1):
     
     return df_res
 
+## Convert OHLC to Heiken Ashi
 def heiken_ashi(df):
     df['HA_Close']=(df['Open']+ df['High']+ df['Low']+df['Close'])/4
     df["HA_Open"] = (df["Open"] + df["Close"]) / 2
@@ -89,6 +96,7 @@ def heiken_ashi(df):
                         'HA_Open':'Open', 'HA_High':'High', 'HA_Low':'Low', 'HA_Close':'Close'}, inplace = True)
     return df
 
+## Donchian Channel Indicator
 def donchian_channel(df):
     highs = [df["High"][0]]
     lows = [df["High"][0]]
@@ -105,7 +113,7 @@ def donchian_channel(df):
     df["DC_Low"] = pd.Series(lows)
     return df
 
-def SRLevels(df):
+def SRLevels(df): ## Stupid Waves
     # Calculate VERY simple waves
     # mx = df.High_15T.rolling( 100 ).max().rename('waves')
     # mn = df.Low_15T.rolling( 100 ).min().rename('waves')
@@ -147,6 +155,7 @@ def SRLevels(df):
     axis.plot( W.index.values, W.waves.values )
     plt.show()
 
+## Get optimum Clusters using Kmeans
 def get_optimum_clusters(df, saturation_point=0.05):
     '''
 
@@ -182,6 +191,7 @@ def get_optimum_clusters(df, saturation_point=0.05):
 
     return optimum_clusters
 
+## Produce Support and Resisitance Clusters
 def getCenters(lows, highs):
     low_clusters = get_optimum_clusters(lows)
     low_centers = low_clusters.cluster_centers_
@@ -214,7 +224,8 @@ def getfractalSupRes(df, timeframe=750): ## timeframe=750 for 2 days ##
                 levels.append((i,df.High[i])) ## Resisitance Check
     return levels
 
-def getMaxMins(df, n_ema=3):
+## list of n-ema maximas and minimas
+def getMaxMins(df, n_ema=5):
     ema_high = ta.volatility.bollinger_mavg((df["Close"] + df["High"])/2, n_ema)
     d_ema_high = ema_high.diff()
     ema_low = ta.volatility.bollinger_mavg((df["Close"] + df["Low"])/2, n_ema)
@@ -229,7 +240,7 @@ def getMaxMins(df, n_ema=3):
     return maximas, minimas
 
 
-def SRclusters(df, timeframe=800, saturation_point=0.05):
+def SRclusters(df, timeframe=400, saturation_point=0.05, verbose=False):
     '''
 
     :param df: dataframe
@@ -240,42 +251,65 @@ def SRclusters(df, timeframe=800, saturation_point=0.05):
     We initialize different K-means with 1..10 centers and compare the inertias
     If the difference is no more than saturation_point, we choose that as K and move on
     '''
-
-    maxs, mins = getMaxMins(df)
+    thisDF = df[-timeframe:]
+    maxs, mins = getMaxMins(thisDF)
+    if verbose:
+        print("Maxs: " + str(maxs))
+        print("Mins: " + str(mins))
     size = min(11, len(maxs), len(mins))
     ## For Resistances
-    wcss = []
-    k_models = []
+    wcss_res = []
+    k_models_res = []
     for i in range(1, size):
         kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
         kmeans.fit(maxs)
-        wcss.append(kmeans.inertia_)
-        k_models.append(kmeans)
+        wcss_res.append(kmeans.inertia_)
+        k_models_res.append(kmeans)
 
     # Compare differences in inertias until it's no more than saturation_point
-    optimum_k = len(wcss)-1
-    for i in range(0, len(wcss)-1):
-        diff = abs(wcss[i+1] - wcss[i])
+    optimum_k_res = len(wcss_res)-1
+    for i in range(0, len(wcss_res)-1):
+        diff = abs(wcss_res[i+1] - wcss_res[i])
         if diff < saturation_point:
-            optimum_k = i
+            optimum_k_res = i
             break
+    optimum_clusters_res = k_models_res[optimum_k_res]
+    if verbose:
+        print("Optimum Resisitances K = " + str(optimum_k_res + 1))
     ## For Supports
-    wcss = []
-    k_models = []
+    wcss_sup = []
+    k_models_sup = []
     for i in range(1, size):
         kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        kmeans.fit(maxs)
-        wcss.append(kmeans.inertia_)
-        k_models.append(kmeans)
+        kmeans.fit(mins)
+        wcss_sup.append(kmeans.inertia_)
+        k_models_sup.append(kmeans)
 
     # Compare differences in inertias until it's no more than saturation_point
-    optimum_k = len(wcss)-1
-    for i in range(0, len(wcss)-1):
-        diff = abs(wcss[i+1] - wcss[i])
+    optimum_k_sup = len(wcss_sup)-1
+    for i in range(0, len(wcss_sup)-1):
+        diff = abs(wcss_sup[i+1] - wcss_sup[i])
         if diff < saturation_point:
-            optimum_k = i
+            optimum_k_sup = i
             break
+    optimum_clusters_sup = k_models_sup[optimum_k_sup]
+    if verbose:
+        print("Optimum Supports K = " + str(optimum_k_sup + 1))
+    return optimum_clusters_res, optimum_clusters_sup
 
-    print("Optimum K is " + str(optimum_k + 1))
-    optimum_clusters = k_models[optimum_k]
+def main():
+    rawdata = dbscrape.expirymonth(*(timscale_setup.get_config()), "BANKNIFTY_F1", 1, 2020)
+    instrument_name = rawdata['internalname'][0]
+    expiry_date = rawdata["expirydate"][0]
+    processed_data = strategys_backtesting.prepareData(rawdata, heiken_ashi=True, verbose=False)
+    threemin = chart_resample(processed_data, target_sr=3)
+    print(threemin.head())
+    print("Finding Levels for DateTime: " + str(threemin.index[500]))
+    res, sups = SRclusters(threemin[100:300], timeframe=100, saturation_point=20, verbose=True)
+    print("Resisitances = " + str(res.cluster_centers_[:, 1].tolist()))
+    print("Supports = " + str(sups.cluster_centers_[:, 1].tolist()))
+    mpf.plot(processed_data[500:1500], hlines=res.cluster_centers_[:, 1].tolist()+sups.cluster_centers_[:, 1].tolist(), type="candle")
 
+
+if __name__ == "__main__":
+    main()
